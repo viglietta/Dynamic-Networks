@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="anonymity" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Release">
+				<Option output="anonymity" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-m64" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-m64" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-m64" />
+		</Compiler>
+		<Linker>
+			<Add option="-m64" />
+			<Add library="mingw32" />
+			<Add library="SDL2main" />
+			<Add library="SDL2" />
+			<Add library="SDL2_ttf" />
+			<Add library="opengl32" />
+		</Linker>
+		<Unit filename="auxdata.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="auxdata.h" />
+		<Unit filename="entity.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="entity.h" />
+		<Unit filename="events.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="events.h" />
+		<Unit filename="examples.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="examples.h" />
+		<Unit filename="graphics.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="graphics.h" />
+		<Unit filename="history_tree.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="history_tree.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="main.h" />
+		<Unit filename="network.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="network.h" />
+		<Unit filename="queue.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="queue.h" />
+		<Unit filename="render.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="render.h" />
+		<Unit filename="stabilizing_algo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="stabilizing_algo.h" />
+		<Unit filename="terminating_algo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="terminating_algo.h" />
+		<Unit filename="vector.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="vector.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
