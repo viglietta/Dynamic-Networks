@@ -105,7 +105,10 @@ static void QuitSystem(void){
 
 int main(int argc,char **argv){
     InitSystem();
-    if(!LoadNetwork(FILENAME))InitNetwork(INITIAL_NETWORK_TYPE,INITIAL_NETWORK_NUM_ENTITIES);
+    bool loaded=false;
+    if(argc>1)loaded=LoadNetwork(argv[1]);
+    if(!loaded)loaded=LoadNetwork(FILENAME);
+    if(!loaded)InitNetwork(INITIAL_NETWORK_TYPE,INITIAL_NETWORK_NUM_ENTITIES);
     DisplayMessage("Press TAB to select a counting algorithm");
     FlushEvents();
     while(!quit){
