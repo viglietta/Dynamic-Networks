@@ -1,3 +1,9 @@
+COMMAND LINE
+
+anonymity [filename]
+Load the network stored in the given file. If no filename is provided or the file cannot be opened, "DefaultNetwork.txt" is loaded.
+
+
 MOUSE COMMANDS
 
 Left-click: select/deselect entity or view
