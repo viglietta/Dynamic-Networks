@@ -2,21 +2,21 @@ COMMAND LINE
 
 anonymity [filename]  
 Load the network stored in the given file. If no filename is provided or the file cannot be opened, "DefaultNetwork.txt" is loaded.
-
+  
 
 MOUSE COMMANDS
 
-Left-click: select/deselect entity or view
+Left-click: select/deselect entity or view  
 Mouse wheel up/down: decrement/increment current round
 
 
 NETWORK WINDOW
 
-Left-click on an entity and drag to draw a new link; release mouse button to confirm.
-Hold CTRL while creating a link to decrement the multiplicity of that link.
-Hold ALT while creating/deleting a link to affect all rounds.
-Hold SHIFT while creating/deleting a link to make it two-way.
-Right-click on an entity and drag to move it.
+Left-click on an entity and drag to draw a new link; release mouse button to confirm.  
+Hold CTRL while creating a link to decrement the multiplicity of that link.  
+Hold ALT while creating/deleting a link to affect all rounds.  
+Hold SHIFT while creating/deleting a link to make it two-way.  
+Right-click on an entity and drag to move it.  
 Right-click away from entities to create a new entity.
 
 
