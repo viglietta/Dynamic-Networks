@@ -1,6 +1,5 @@
 #include "main.h"
 
-bool *locked=NULL; // levels containing a guessed non-counted node
 int unguessableLevels=2; // the first level that may be guessable
 int countSteps=0;
 
@@ -8,8 +7,18 @@ static bool Guessed(AuxData *node){ // is the node guessed?
     return node->guess!=-1 && !node->counted;
 }
 
+static bool IsLocked(AuxData *node){
+    AuxData *parent=GetAuxData(node->i-1,node->parent); // get node's parent
+    return parent->locked; // return whether a sibling is guessed
+}
+
+static void SetLock(AuxData *node,bool lock){
+    AuxData *parent=GetAuxData(node->i-1,node->parent); // get node's parent
+    parent->locked=lock; // lock or unlock all siblings
+}
+
 static int Guessable(AuxData *node){ // return the index of a guesser or -1 if the node is not guessable
-    if(!node->visible)return -1; // the node must be visible
+    if(!node->visible || node->counted || IsLocked(node))return -1; // the node must be visible, not counted, and not locked
     for(int i=0;i<node->observations->tot;i++){ // scan all red edges
         int obs=node->observations->items[i]; // get observed node's index
         if(obs==node->parent)continue; // the node's parent cannot be its guesser
@@ -35,7 +44,7 @@ static int CumulativeMultiplicities(AuxData *guesser,AuxData *guessable){ // est
 static AuxData *MarkCounted(AuxData *node){ // return the nearest counted ancestor of the node, or NULL if there are none
     if(!Guessed(node))return NULL;
     if(node->h->input){ // not a leader's node
-        locked[node->i]=false; // unlock level, because the node is no longer guessed
+        SetLock(node,false); // unlock siblings, because the node is no longer guessed
         unguessableLevels=node->i; // this level may have become guessable
     }
     else node->guesser=true; // leaders are guessers
@@ -50,10 +59,10 @@ static AuxData *MarkCounted(AuxData *node){ // return the nearest counted ancest
     return NULL; // no counted node was found on the black path to the root
 }
 
-static int ResolveCompleteIsleHelper(AuxData *node){ // return the number of guessed nodes that became counted
+static int CountIsleHelper(AuxData *node){ // return the number of guessed nodes that became counted
     int weightLoss=0;
-    if(node->guess!=-1 && !node->counted){ // the node is guessed (and not counted)
-        locked[node->i]=false; // unlock the level
+    if(Guessed(node)){ // the node is guessed (and not counted)
+        SetLock(node,false); // unlock siblings, because the node is no longer guessed
         weightLoss=1; // the weight of its ancestors should decrease
     }
     node->guess=node->cumulativeAnonymity; // the node's anonymity is the sum of its (visible) children's anonymities
@@ -62,14 +71,13 @@ static int ResolveCompleteIsleHelper(AuxData *node){ // return the number of gue
     node->guesser=true; // the node is now a guesser
     for(int i=0;i<node->children->tot;i++){
         AuxData *child=GetAuxData(node->i+1,node->children->items[i]); // get node's child
-        if(!child->counted)weightLoss+=ResolveCompleteIsleHelper(child); // resolve the (complete) isle rooted at the child
+        if(!child->counted)weightLoss+=CountIsleHelper(child); // resolve the (complete) isle rooted at the child
     }
     return weightLoss;
 }
 
-static void ResolveCompleteIsle(AuxData *node){ // count all the internal nodes of a complete isle given its root
-    int weightLoss=ResolveCompleteIsleHelper(node); // mark all internal nodes as counted and get the weight loss
-    if(unguessableLevels>node->i+1)unguessableLevels=node->i+1; // the modified levels may have become guessable
+static void CountIsle(AuxData *node){ // count all the internal nodes of a complete isle given its root
+    int weightLoss=CountIsleHelper(node); // mark all internal nodes as counted and get the weight loss
     while(node->i>0){ // scan the black path from the isle's root to the history tree's root
         node=GetAuxData(node->i-1,node->parent);
         if(node->weight>0)node->weight-=weightLoss; // decrease every guessed node's weight
@@ -91,12 +99,10 @@ static int CountingCut(AuxData *node){ // return the deepest level in a cut for 
 
 static bool LastAlgorithmStep(void){
     if(numSteps==-1 || ++countSteps<numSteps)return false;
-    if(locked)free(locked);
-    locked=NULL;
     return true;
 }
 
-bool TerminatingAlgorithm(void){ // terminates with correct output by round 3n-2
+bool TerminatingAlgorithm(void){ // terminates with correct output by round 3n-3
     if(numSteps==0)return false;
     countSteps=0;
     int numLevels; // number of levels containing a visible leader node
@@ -107,20 +113,13 @@ bool TerminatingAlgorithm(void){ // terminates with correct output by round 3n-2
         MarkCounted(first);
     }
     if(LastAlgorithmStep())return false;
-    locked=malloc(sizeof(bool)*numLevels);
-    for(int i=0;i<numLevels;i++)locked[i]=false; // initially, no levels contain a guessed non-counted node
     unguessableLevels=2; // initially, only the first two levels are certainly not guessable
     while(unguessableLevels<numLevels){ // keep looping as long as there are guessable levels
-        if(locked[unguessableLevels]){ // the level already contains a guessed node; skip it
-            unguessableLevels++;
-            continue;
-        }
         AuxData *guessable=NULL;
         int sumMultiplicities=0,multiplicity=0;
         Vector *v=GetLevel(unguessableLevels);
-        for(int j=0;j<v->tot;j++){ // search for a guessable node in the current level
+        for(int j=0;j<v->tot;j++){ // search for guessable nodes in the current level
             AuxData *node=v->items[j]; // get next node in the level
-            if(node->counted)continue; // counted nodes are not guessable
             int obs=Guessable(node); // find a guesser for the node
             if(obs==-1)continue; // no guesser was found; the node is not guessable
             AuxData *guesser=GetAuxData(unguessableLevels-1,node->observations->items[obs]); // get the guesser
@@ -130,11 +129,13 @@ bool TerminatingAlgorithm(void){ // terminates with correct output by round 3n-2
             guessable=node; // the node is guessable
             break; // a guessable node was found; stop searching
         }
-        unguessableLevels++;
-        if(!guessable)continue; // the level does not contain a guessable non-counted node; search next level
-        guessable->guess=(sumMultiplicities-1)/multiplicity+1; // assign a guess to guessable
+        if(!guessable){ // the level does not contain a guessable non-counted node; search next level
+            unguessableLevels++;
+            continue;
+        }
+        guessable->guess=(sumMultiplicities-1)/multiplicity+1; // assign a guess to guessable (make sure the guess is positive)
         if(LastAlgorithmStep())return false;
-        locked[guessable->i]=true; // locked guessable's level
+        SetLock(guessable,true); // locked guessable's siblings
         AuxData *node=guessable;
         while(node->i>1){ // scan the black path from the guessed node to the root
             AuxData *parent=GetAuxData(node->i-1,node->parent); // get node's parent
@@ -142,13 +143,11 @@ bool TerminatingAlgorithm(void){ // terminates with correct output by round 3n-2
             node->weight++; // increment the node's weight
             if(node->weight<node->guess){ node=parent; continue; } // the node is not heavy; proceed along the path
             AuxData *high=MarkCounted(node); // the node is heavy; mark it as counted
-            if(high && high->cumulativeAnonymity==high->guess)ResolveCompleteIsle(high); // the node is a leaf of a complete isle
-            if(node->cumulativeAnonymity==node->guess)ResolveCompleteIsle(node); // the node is the root of a complete isle
+            if(high && high->cumulativeAnonymity==high->guess)CountIsle(high); // the node is a leaf of a complete isle
+            if(node->cumulativeAnonymity==node->guess)CountIsle(node); // the node is the root of a complete isle
             break; // all other weights stay the same
         }
     }
-    free(locked);
-    locked=NULL;
     AuxData *root=GetAuxData(0,0); // get the root of the history tree
     int deepest=CountingCut(root); // get the level of a deepest node in a counting cut
     if(deepest==-1 || selectedNode->h->level<deepest+root->cumulativeAnonymity) // there are no counting cuts or the terminating condition is not satisfied

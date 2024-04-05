@@ -90,7 +90,7 @@ void ExampleNetwork4(int n){ // the stabilizing approach fails for an arbitraril
     }
 }
 
-void ExampleNetwork5(void){ // boldi-codenotti bipartite static anonymous network
+void ExampleNetwork5(void){ // boldi-vigna bipartite static anonymous network
     AddEntity(1,-0.5f,-2.0f/3);
     AddEntity(1,0.0f,-2.0f/3);
     AddEntity(1,0.5f,-2.0f/3);

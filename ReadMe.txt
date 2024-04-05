@@ -30,9 +30,11 @@ LEFT/RIGHT: select different anonymity class
 BACKSPACE: delete all interactions in current round
 DEL: delete selected entities
 +/-: insert/delete round
+A: toggle arrows
 L: change red edge drawing mode
 B: draw round/square nodes
-D: snap enetities to grid
+H: toggle highlight current level
+D: snap entities to grid
 0..9: change state of selected entities
 CAPS-LOCK: create double links by default
 F1: load network from "DefaultNetwork.txt"

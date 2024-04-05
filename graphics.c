@@ -121,7 +121,7 @@ void DrawLine(WindowData *win,float x1,float y1,float x2,float y2,bool discretiz
     glEnd();
 }
 
-void DrawArrow(WindowData *win,float x1,float y1,float x2,float y2,bool margin,bool bothWays,bool discretize){
+void DrawArrow(WindowData *win,float x1,float y1,float x2,float y2,bool arrow,bool margin,bool bothWays,bool discretize){
     if(discretize){
         x1=DiscretizeX(win,x1); y1=DiscretizeY(win,y1);
         x2=DiscretizeX(win,x2); y2=DiscretizeY(win,y2);
@@ -146,9 +146,10 @@ void DrawArrow(WindowData *win,float x1,float y1,float x2,float y2,bool margin,b
     float x7=ToWorldX(win,sx1+nx*d5),y7=ToWorldY(win,sy1+ny*d5);
     glBegin(GL_LINES);
     glVertex2f(x1,-y1);
-    if(margin)glVertex2f(x2,-y2);
+    if(margin||!arrow)glVertex2f(x2,-y2);
     else glVertex2f(x7,-y7);
     glEnd();
+    if(!arrow)return;
     glBegin(GL_TRIANGLES);
     glVertex2f(x3,-y3);
     glVertex2f(x5,-y5);
@@ -174,7 +175,7 @@ void DrawArrow(WindowData *win,float x1,float y1,float x2,float y2,bool margin,b
     glEnd();
 }
 
-void DrawSelfArrow(WindowData *win,float x,float y,float rx,float ry,float ofs,bool discretize){
+void DrawSelfArrow(WindowData *win,float x,float y,float rx,float ry,float ofs,bool arrow,bool discretize){
     if(discretize){
         x=DiscretizeX(win,x);
         y=DiscretizeY(win,y);
@@ -194,19 +195,20 @@ void DrawSelfArrow(WindowData *win,float x,float y,float rx,float ry,float ofs,b
     cx*=rx; cy*=ry;
     x+=cx; y+=cy;
     int sides=24;
-    int n=18;
+    int n=arrow?17:sides;
     glBegin(GL_LINE_STRIP);
-    for(int i=0;i<n;i++){
+    for(int i=0;i<=n;i++){
         float a=angle+i*2.0f*M_PI/sides;
         glVertex2f(x-rx*cos(a),-y+ry*sin(a));
     }
     glEnd();
-    glBegin(GL_POINTS);
-    for(int i=0;i<n;i++){
-        float a=angle+i*2.0f*M_PI/sides;
-        glVertex2f(x-rx*cos(a),-y+ry*sin(a));
-    }
-    glEnd();
+//    glBegin(GL_POINTS);
+//    for(int i=0;i<=n;i++){
+//        float a=angle+i*2.0f*M_PI/sides;
+//        glVertex2f(x-rx*cos(a),-y+ry*sin(a));
+//    }
+//    glEnd();
+    if(!arrow)return;
     float a=angle+1.8f*M_PI;
     float x1=x-rx*cos(a);
     float y1=y-ry*sin(a);

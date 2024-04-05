@@ -90,7 +90,7 @@ static void KeyPressed(SDL_Keycode key){
             break;
         case SDLK_DELETE:
             selectedNode=NULL;
-            if(selectedEntity!=-1){
+            if(selectedEntity!=-1&&network->entities->tot>1){
                 DeleteEntity(selectedEntity);
                 selectedEntity=-1;
                 drawingEdge=false;
@@ -101,11 +101,11 @@ static void KeyPressed(SDL_Keycode key){
             }
             if(selectedNodeI!=-1 && selectedNodeJ!=-1){
                 bool changed=false;
-                for(int i=0;i<network->entities->tot;i++){
+                for(int i=network->entities->tot-1;i>=0&&network->entities->tot>1;i--){
                     Entity *e=GetEntity(i);
                     if(CorrespondsToSelectedNode(e)){
                         changed=true;
-                        DeleteEntity(i--);
+                        DeleteEntity(i);
                     }
                 }
                 if(changed){
@@ -221,6 +221,12 @@ static void KeyPressed(SDL_Keycode key){
                 default: break;
             }
             break;
+        case SDLK_a:
+            renderArrows=!renderArrows;
+            win2->invalid=true;
+            if(renderArrows)DisplayMessage("Display arrows");
+            else DisplayMessage("Do not display arrows");
+            break;
         case SDLK_l:
             renderLinks++;
             if(renderLinks>2)renderLinks=0;
@@ -237,6 +243,12 @@ static void KeyPressed(SDL_Keycode key){
             win2->invalid=true;
             if(roundNodes)DisplayMessage("Round nodes");
             else DisplayMessage("Square nodes");
+            break;
+        case SDLK_h:
+            renderBar=!renderBar;
+            win2->invalid=true;
+            if(renderBar)DisplayMessage("Highlight current level");
+            else DisplayMessage("Do not highlight current level");
             break;
         case SDLK_d:
             for(int i=0;i<network->entities->tot;i++){

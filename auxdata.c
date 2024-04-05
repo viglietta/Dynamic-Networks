@@ -94,6 +94,7 @@ void ResetAuxDataVariables(void){
         for(int j=0;j<v->tot;j++){
             AuxData *data=v->items[j];
             data->guess=-1; // no guess has been made
+            data->locked=false;
             data->counted=false;
             data->weight=0;
             data->cumulativeAnonymity=0;

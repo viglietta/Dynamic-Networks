@@ -2,10 +2,17 @@
 
 bool roundNodes=true;
 int renderLinks=0;
+bool renderBar=true;
+bool renderArrows=false;
 bool renderMessage=false;
 char infoMessage[512];
 
 static void RenderHistoryTree(WindowData *win,float rx,float ry){
+    if(renderBar){ // render gray bar on current level
+        glColor3ub(208,208,208);
+        AuxData *data=GetAuxData(currentRound+2,0);
+        DrawRectangle(win,0.0f,data->y,1.0f,ry,true,false,false);
+    }
     for(int i=0;i<aux->tot;i++) // render black edges
         for(int j=0;j<GetLevel(i)->tot;j++){
             AuxData *data=GetAuxData(i,j);
@@ -99,8 +106,8 @@ void RenderWindow1(WindowData *win){
             Interaction *interaction=v->items[i];
             Entity *e1=interaction->e1;
             Entity *e2=interaction->e2;
-            if(e1==e2)DrawSelfArrow(win,e1->x,e1->y,rx,ry,0.0f,DISCRETIZE_RENDERING);
-            else DrawArrow(win,e1->x,e1->y,e2->x,e2->y,true,false,DISCRETIZE_RENDERING);
+            if(e1==e2)DrawSelfArrow(win,e1->x,e1->y,rx,ry,0.0f,renderArrows,DISCRETIZE_RENDERING);
+            else DrawArrow(win,e1->x,e1->y,e2->x,e2->y,renderArrows,true,false,DISCRETIZE_RENDERING);
         }
         SetWidth(2.0f,1.0f);
         for(int i=0;i<v->tot;i++){
@@ -129,15 +136,15 @@ void RenderWindow1(WindowData *win){
         SetWidth(5.0f,5.0f);
         glColor3ub(255,0,0);
         int s=SelectEntityXY(x,y);
-        if(s==selectedEntity)DrawSelfArrow(win,e1->x,e1->y,rx,ry,selfLoopOfs?0.55f:0.0f,DISCRETIZE_RENDERING);
+        if(s==selectedEntity)DrawSelfArrow(win,e1->x,e1->y,rx,ry,selfLoopOfs?0.55f:0.0f,true,DISCRETIZE_RENDERING);
         else{
             bool bothWays=keyboardState[SDL_SCANCODE_LSHIFT] || keyboardState[SDL_SCANCODE_RSHIFT];
             if(SDL_GetModState()&KMOD_CAPS)bothWays=!bothWays;
             if(s!=-1){
                 Entity *e2=GetEntity(s);
-                DrawArrow(win,e1->x,e1->y,e2->x,e2->y,true,bothWays,DISCRETIZE_RENDERING);
+                DrawArrow(win,e1->x,e1->y,e2->x,e2->y,true,true,bothWays,DISCRETIZE_RENDERING);
             }
-            else DrawArrow(win,e1->x,e1->y,ToWorldX(win,x),ToWorldY(win,y),false,bothWays,DISCRETIZE_RENDERING);
+            else DrawArrow(win,e1->x,e1->y,ToWorldX(win,x),ToWorldY(win,y),true,false,bothWays,DISCRETIZE_RENDERING);
         }
     }
     SetWidth(3.0f,2.0f);
@@ -152,7 +159,11 @@ void RenderWindow1(WindowData *win){
         DrawTexture(win,e->label,e->x,e->y,0,ry*LABEL_OFS_Y,rx>ratio?ratio:rx,ry,DISCRETIZE_RENDERING);
     }
     glColor3ub(0,0,255);
-    if(network)DrawString(win,font,0,MESSAGE_SIZE,MESSAGE_SIZE,"Round %d of %d",currentRound+1,network->rounds->tot);
+    if(network){
+        DrawString(win,font,MESSAGE_SIZE/2,MESSAGE_SIZE,MESSAGE_SIZE,"Round %d of %d",currentRound+1,network->rounds->tot);
+        if(network->entities->tot==1)DrawString(win,font,MESSAGE_SIZE/2,MESSAGE_SIZE*2,MESSAGE_SIZE,"1 agent");
+        else DrawString(win,font,MESSAGE_SIZE/2,MESSAGE_SIZE*2,MESSAGE_SIZE,"%d agents",network->entities->tot);
+    }
     if(renderMessage)DrawString(win,font,0,win->h,MESSAGE_SIZE,infoMessage);
 }
 

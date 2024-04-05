@@ -12,6 +12,7 @@ typedef struct{ // inherits the structure of a history tree and adds more data t
     int anonymity; // computed knowing the network information; not used by counting algorithms
     bool visible; // the node is part of the selected view
     int guess; // estimated anonymity; -1 if no guess has been made
+    bool locked; // one of its children is guessed (only used by the terminating algorithm)
     bool counted; // the guess has been proved correct (only used by the terminating algorithm)
     int weight; // number of guessed nodes in subtree (only used by the terminating algorithm)
     int cumulativeAnonymity; // sum of known anonymities of children (only used by the terminating algorithm)

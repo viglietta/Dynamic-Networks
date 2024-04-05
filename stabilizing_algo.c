@@ -74,7 +74,12 @@ bool StabilizingAlgorithm(void){ // stabilizes on correct output by round 2n-2
             guessedLevel=i;
             break;
         }
-        for(int j=0;j<v->tot;j++)((AuxData*)v->items[j])->guess=-1; // undo all guesses and scan next level
+        for(int j=0;j<v->tot;j++){ // undo all guesses and scan next level
+            AuxData *node=v->items[j];
+            node->guess=-1;
+            AuxData *child=GetFirstChild(node);
+            if(child)child->guess=-1;
+        }
     }
     if(guessedLevel==-1)return false; // no level has been completely guessed
     for(int i=guessedLevel-1;i>=0;i--){ // propagate guesses to other visible nodes up to the root

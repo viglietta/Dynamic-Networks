@@ -88,7 +88,7 @@ static void InitSystem(void){
     SDL_Rect rect;
     SDL_GetDisplayUsableBounds(0,&rect);
     float mx=(1.0f-2.0f*WIN_WIDTH)/3.0f;
-    float my=(1.0f-WIN_HEIGHT)/2.0f;
+    float my=(1.0f-WIN_HEIGHT)/2.0f+WIN_OFFSET;
     win1=NewWindow("Network",rect.x+rect.w*mx,rect.y+rect.h*my,rect.w*WIN_WIDTH,rect.h*WIN_HEIGHT,RenderWindow1);
     win2=NewWindow("History Tree",rect.x+rect.w*(WIN_WIDTH+2.0f*mx),rect.y+rect.h*my,rect.w*WIN_WIDTH,rect.h*WIN_HEIGHT,RenderWindow2);
     SDL_AddEventWatch(WindowEventWatcher,NULL);

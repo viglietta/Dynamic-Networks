@@ -19,8 +19,9 @@
 #define FILENAME "DefaultNetwork.txt"
 #define INITIAL_NETWORK_TYPE 1
 #define INITIAL_NETWORK_NUM_ENTITIES 10
-#define WIN_WIDTH 0.4f
-#define WIN_HEIGHT 0.8f
+#define WIN_WIDTH 0.5f
+#define WIN_HEIGHT 0.95f
+#define WIN_OFFSET 0.02f
 #define MESSAGE_SIZE 50.0f
 #define MESSAGE_TIME 5000
 #define NODE_SIZE 50.0f
