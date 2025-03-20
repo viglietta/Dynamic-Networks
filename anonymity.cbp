@@ -8,7 +8,7 @@
 		<Build>
 			<Target title="Release">
 				<Option output="anonymity" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Release/" />
+				<Option object_output="obj/" />
 				<Option type="0" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -26,11 +26,10 @@
 			<Add option="-m64" />
 		</Compiler>
 		<Linker>
+			<Add option="-static-libgcc" />
 			<Add option="-m64" />
 			<Add library="mingw32" />
-			<Add library="SDL2main" />
-			<Add library="SDL2" />
-			<Add library="SDL2_ttf" />
+			<Add library="SDL3" />
 			<Add library="opengl32" />
 		</Linker>
 		<Unit filename="auxdata.c">
@@ -49,6 +48,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="examples.h" />
+		<Unit filename="font.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="font.h" />
 		<Unit filename="graphics.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -73,6 +76,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="render.h" />
+		<Unit filename="shader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="shader.h" />
 		<Unit filename="stabilizing_algo.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -81,6 +88,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="terminating_algo.h" />
+		<Unit filename="text.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="text.h" />
 		<Unit filename="vector.c">
 			<Option compilerVar="CC" />
 		</Unit>

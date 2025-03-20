@@ -1,7 +1,6 @@
 typedef struct{
     Entity *e1,*e2;
     int multiplicity;
-    Texture *label;
 }Interaction;
 
 typedef struct{
@@ -34,5 +33,5 @@ void AddInteraction(int round,int i,int j,int multiplicity); // interaction from
 void AddDoubleInteraction(int round,int i,int j,int multiplicity); // interaction between entity i and entity j
 int SelectEntityXY(int x,int y);
 void CountingAlgorithm(void);
-bool LoadNetwork(const char *filename);
-bool SaveNetwork(const char *filename);
+void LoadNetwork(void);
+void SaveNetwork(void);

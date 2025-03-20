@@ -22,7 +22,7 @@ static AuxData *GetFirstChild(AuxData *data){ // return first visible child; NUL
 bool StabilizingAlgorithm(void){ // stabilizes on correct output by round 2n-2
     if(numSteps==0)return false;
     int countSteps=0;
-    bool guessedLevel=-1; // level where all visible nodes have been guessed; -1 if none
+    int guessedLevel=-1; // level where all visible nodes have been guessed; -1 if none
     for(int i=1;i<aux->tot;i++){ // scan all levels excluding the root
         Vector *v=GetLevel(i);
         bool branching=false; // are some visible nodes in this level branching?

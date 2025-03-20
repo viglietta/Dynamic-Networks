@@ -1,8 +1,42 @@
 #include "main.h"
 
-WindowData *win1,*win2;
+WindowData *win1=NULL;
+float separator=0.0f;
 bool quit=false;
 static Uint64 timeout;
+
+void Exit(const char *m){
+    if(m)SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,"Critical error",m,NULL);
+    #ifdef __EMSCRIPTEN__
+    emscripten_force_exit(1);
+    #else
+    exit(EXIT_FAILURE);
+    #endif
+}
+
+Uint8 ReadU8(SDL_IOStream *stream){
+    Uint8 x;
+    if(!SDL_ReadU8(stream,&x))Exit("Error reading stream.");
+    return x;
+}
+
+Uint16 ReadU16LE(SDL_IOStream *stream){
+    Uint16 x;
+    if(!SDL_ReadU16LE(stream,&x))Exit("Error reading stream.");
+    return x;
+}
+
+Uint32 ReadU32LE(SDL_IOStream *stream){
+    Uint32 x;
+    if(!SDL_ReadU32LE(stream,&x))Exit("Error reading stream.");
+    return x;
+}
+
+float ReadFloat(SDL_IOStream *stream){
+    union{float f;Uint32 x;}u;
+    u.x=ReadU32LE(stream);
+    return u.f;
+}
 
 void DisplayMessage(char *format,...){
     va_list args;
@@ -11,7 +45,7 @@ void DisplayMessage(char *format,...){
     va_end(args);
     renderMessage=true;
     win1->invalid=true;
-    timeout=SDL_GetTicks64()+MESSAGE_TIME;
+    timeout=SDL_GetTicks()+MESSAGE_TIME;
 }
 
 void UndisplayMessage(void){
@@ -21,43 +55,18 @@ void UndisplayMessage(void){
 
 static void Update(void){
     Events();
-    if(renderMessage && SDL_GetTicks64()>=timeout)UndisplayMessage();
-    if(prompting)DisplayMessage("Save network to file \"%s\"? (Y/N)",FILENAME);
+    if(renderMessage && SDL_GetTicks()>=timeout)UndisplayMessage();
 }
 
-#ifdef WIN32
-static void EnableHiDPI(void){
-    typedef enum{
-        PROCESS_DPI_UNAWARE=0,
-        PROCESS_SYSTEM_DPI_AWARE=1,
-        PROCESS_PER_MONITOR_DPI_AWARE=2
-    }PROCESS_DPI_AWARENESS;
-    void *shcoreDLL=SDL_LoadObject("SHCORE.DLL");
-    if(shcoreDLL){
-        HRESULT(WINAPI *SetProcessDpiAwareness)(PROCESS_DPI_AWARENESS dpiAwareness);
-        SetProcessDpiAwareness=(HRESULT(WINAPI*)(PROCESS_DPI_AWARENESS))SDL_LoadFunction(shcoreDLL,"SetProcessDpiAwareness");
-        if(SetProcessDpiAwareness){
-            SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-            return;
-        }
-    }
-    void *userDLL=SDL_LoadObject("USER32.DLL");
-    if(userDLL){
-        BOOL(WINAPI *SetProcessDPIAware)(void);
-        SetProcessDPIAware=(BOOL(WINAPI*)(void))SDL_LoadFunction(userDLL,"SetProcessDPIAware");
-        if(SetProcessDPIAware)SetProcessDPIAware();
-    }
-}
-#endif // WIN32
-
-static int WindowEventWatcher(void *data,SDL_Event *event){
-    if(event->type==SDL_WINDOWEVENT&&(event->window.event==SDL_WINDOWEVENT_RESIZED||event->window.event==SDL_WINDOWEVENT_MOVED)){
+#ifndef __EMSCRIPTEN__
+static bool WindowEventWatcher(void *data,SDL_Event *event){
+    (void)data;
+    if(event->type==SDL_EVENT_WINDOW_RESIZED||event->type==SDL_EVENT_WINDOW_MOVED){
         SDL_Window *window=SDL_GetWindowFromID(event->window.windowID);
         WindowData *win=NULL;
         if(window==win1->window)win=win1;
-        else if(window==win2->window)win=win2;
         if(win){
-            if(event->window.event==SDL_WINDOWEVENT_RESIZED){
+            if(event->type==SDL_EVENT_WINDOW_RESIZED){
                 win->w=event->window.data1;
                 win->h=event->window.data2;
                 SetWindowViewport(win);
@@ -66,56 +75,59 @@ static int WindowEventWatcher(void *data,SDL_Event *event){
             RenderWindow(win);
         }
     }
-    return 0;
+    return false;
+}
+#endif
+
+static void QuitSystem(void){
+    QuitText();
+    if(win1)FreeWindow(win1);
+    SDL_Quit();
 }
 
 static void InitSystem(void){
-    #ifdef WIN32
-    EnableHiDPI();
-    #endif // WIN32
-    SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_TIMER);
+    SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS);
     keyboardState=SDL_GetKeyboardState(NULL);
+    #ifdef __EMSCRIPTEN__
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,CONTEXT_PROFILE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,CONTEXT_MAJOR);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,CONTEXT_MINOR);
+    #endif
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE,0);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,0);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS,1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,4);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL,1);
-    TTF_Init();
-    font=TTF_OpenFont("font.ttf",(int)NODE_SIZE);
-    SDL_Rect rect;
-    SDL_GetDisplayUsableBounds(0,&rect);
-    float mx=(1.0f-2.0f*WIN_WIDTH)/3.0f;
-    float my=(1.0f-WIN_HEIGHT)/2.0f+WIN_OFFSET;
-    win1=NewWindow("Network",rect.x+rect.w*mx,rect.y+rect.h*my,rect.w*WIN_WIDTH,rect.h*WIN_HEIGHT,RenderWindow1);
-    win2=NewWindow("History Tree",rect.x+rect.w*(WIN_WIDTH+2.0f*mx),rect.y+rect.h*my,rect.w*WIN_WIDTH,rect.h*WIN_HEIGHT,RenderWindow2);
+    win1=NewWindow(WINDOW_TITLE,RenderWindow1);
+    InitText();
+    #ifndef __EMSCRIPTEN__
     SDL_AddEventWatch(WindowEventWatcher,NULL);
-    SDL_RaiseWindow(win1->window);
+    #endif
 }
 
-static void QuitSystem(void){
-    FreeWindow(win1);
-    FreeWindow(win2);
-    TTF_CloseFont(font);
-    TTF_Quit();
-    SDL_Quit();
+static void MainLoop(void){
+    Update();
+    RenderWindow(win1);
 }
 
 int main(int argc,char **argv){
+    (void)argc; (void)argv;
     InitSystem();
-    bool loaded=false;
-    if(argc>1)loaded=LoadNetwork(argv[1]);
-    if(!loaded)loaded=LoadNetwork(FILENAME);
-    if(!loaded)InitNetwork(INITIAL_NETWORK_TYPE,INITIAL_NETWORK_NUM_ENTITIES);
-    DisplayMessage("Press TAB to select a counting algorithm");
+    Uint64 time;
+    SDL_GetCurrentTime((SDL_Time*)&time);
+    SDL_srand(time);
+    InitNetwork(SDL_rand(6)+1,INITIAL_NETWORK_NUM_ENTITIES);
     FlushEvents();
-    while(!quit){
-        Update();
-        RenderWindow(win1);
-        RenderWindow(win2);
-    }
+    DisplayMessage("Press H for help");
+    #ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(MainLoop,0,1);
+    #else
+    while(!quit)MainLoop();
+    #endif
     DoneNetwork();
     QuitSystem();
     return EXIT_SUCCESS;

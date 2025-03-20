@@ -9,7 +9,8 @@ typedef struct HistoryTree{
     struct HistoryTree *parent; // parent node
     Vector *children; // children nodes; Vector of HistoryTree
     Vector *observations; // red edges to the previous level; Vector of Observation
-    struct HistoryTree *reference; // target of homomorphism (only used when merging history trees)
+    int outdegree; // messages sent in previous round; -1 if not outAware
+    struct HistoryTree *reference; // target of isomorphism (only used when merging history trees)
     void *data; // only used in finalHistory
 }HistoryTree;
 
@@ -20,6 +21,5 @@ void AddRedEdge(HistoryTree *h1,HistoryTree *h2,int multiplicity); // create red
 HistoryTree *AddHistoryTreeChild(HistoryTree *h,int input); // adds a child node to h with given input and return it
 HistoryTree *MergeHistoryTrees(HistoryTree *h1,HistoryTree *h2,bool *added); // result is in h1; returns endpoint in new tree and whether any nodes were added
 HistoryTree *CopyHistoryTree(HistoryTree *h,HistoryTree **deepest); // returns copied tree and deepest node
-bool HistoryTreeContains(HistoryTree *h1,HistoryTree *h2); // does h1 contain a homeomorphic copy of h2?
-bool HistoryTreeEquals(HistoryTree *h1,HistoryTree *h2); // is h1 homeomorphic to h2?
-void PrintHistoryTree(HistoryTree *h);
+bool HistoryTreeContains(HistoryTree *h1,HistoryTree *h2); // does h1 contain an isomorphic copy of h2?
+bool HistoryTreeEquals(HistoryTree *h1,HistoryTree *h2); // is h1 isomorphic to h2?

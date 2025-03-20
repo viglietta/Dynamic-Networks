@@ -24,8 +24,7 @@ static int ComputeAuxDataWidth(HistoryTree *h){
     data->children=NewVectorI(4);
     data->observations=NewVectorI(4);
     data->multiplicities=NewVectorI(4);
-    data->label=NULL;
-    data->linkLabels=NewVector(4);
+    data->outdegree=h->outdegree;
     data->anonymity=0;
     data->visible=false;
     data->width=0;
@@ -56,7 +55,7 @@ static void ComputeAuxDataCoordinates(int i,int j,float x1,float y1,float x2,flo
 }
 
 static void ComputeAuxDataRedEdges(void){
-    SetWindowContext(win2);
+    SetWindowContext(win1);
     for(int i=0;i<aux->tot;i++)
         for(int j=0;j<GetLevel(i)->tot;j++){
             AuxData *data=GetAuxData(i,j);
@@ -66,8 +65,6 @@ static void ComputeAuxDataRedEdges(void){
                     if(obs->history==GetAuxData(i-1,k)->h){
                         AddVectorI(data->observations,k);
                         AddVectorI(data->multiplicities,obs->multiplicity);
-                        if(obs->multiplicity>1)AddVector(data->linkLabels,CreateText(font,"%d",obs->multiplicity));
-                        else AddVector(data->linkLabels,NULL);
                     }
                 }
         }
@@ -111,12 +108,11 @@ void ComputeAuxData(HistoryTree *h){
     ComputeAuxDataRedEdges();
     ComputeAuxDataAnonymities();
     ResetAuxDataVariables();
-    UpdateAuxDataLabels();
 }
 
 void FreeAuxData(void){
     if(!aux)return;
-    SetWindowContext(win2);
+    SetWindowContext(win1);
     for(int i=0;i<aux->tot;i++){
         Vector *v=GetLevel(i);
         for(int j=0;j<v->tot;j++){
@@ -124,35 +120,12 @@ void FreeAuxData(void){
             FreeVectorI(data->children);
             FreeVectorI(data->observations);
             FreeVectorI(data->multiplicities);
-            if(data->label)FreeTexture(data->label);
-            for(int k=0;k<data->linkLabels->tot;k++){
-                Texture *texture=data->linkLabels->items[k];
-                if(texture)FreeTexture(texture);
-            }
-            FreeVector(data->linkLabels);
             free(data);
         }
         FreeVector(v);
     }
     FreeVector(aux);
     aux=NULL;
-}
-
-void UpdateAuxDataLabels(void){
-    SetWindowContext(win2);
-    for(int i=0;i<aux->tot;i++)
-        for(int j=0;j<GetLevel(i)->tot;j++){
-            AuxData *data=GetAuxData(i,j);
-            if(data->label)FreeTexture(data->label);
-            data->label=NULL;
-            if(algorithm && (selectedEntity!=-1 || selectedNodeI!=-1)){
-                if(data->guess!=-1)data->label=CreateText(font,"%d",data->guess);
-            }
-            else if(data->i==1){
-                if(data->h->input)data->label=CreateText(font,"%d",data->h->input);
-                else data->label=CreateText(font,"L");
-            }
-        }
 }
 
 static void SelectNode(AuxData *data,bool select){
@@ -183,7 +156,7 @@ void SelectView(void){
     if(selectedEntity!=-1){
         Entity *e=GetEntity(selectedEntity);
         HistoryTree *h=e->finalLeaf;
-        for(int i=aux->tot-1;i>currentRound+2;i--)h=h->parent;
+        for(int i=h->level+1;i>currentRound+2;i--)h=h->parent;
         selectedNode=h->data;
         SelectViewHelper(selectedNode->i,selectedNode->j);
     }
@@ -198,11 +171,11 @@ void SelectNodeXY(int x,int y,int *si,int *sj){
     *si=-1; *sj=-1;
     for(int i=0;i<aux->tot;i++){
         Vector *v=GetLevel(i);
-        float cy=ToScreenY(win2,((AuxData*)v->items[0])->y);
+        float cy=ToScreenY(win1,((AuxData*)v->items[0])->y);
         if(cy+NODE_SIZE*0.5f<y)continue;
         if(cy-NODE_SIZE*0.5f>y)break;
         for(int j=0;j<v->tot;j++){
-            float cx=ToScreenX(win2,((AuxData*)v->items[j])->x);
+            float cx=ToScreenX2(win1,((AuxData*)v->items[j])->x);
             float dist=(cx-x)*(cx-x)+(cy-y)*(cy-y);
             if(*si==-1 || dist<minDist){ minDist=dist; *si=i; *sj=j; }
         }
@@ -216,7 +189,7 @@ bool CorrespondsToSelectedNode(Entity *e){
     if(selectedNodeI==-1 || selectedNodeJ==-1)return false;
     AuxData *data=GetAuxData(selectedNodeI,selectedNodeJ);
     HistoryTree *h=e->finalLeaf;
-    for(int i=aux->tot-1;i>selectedNodeI;i--)h=h->parent;
+    for(int i=h->level+1;i>selectedNodeI;i--)h=h->parent;
     return h==data->h;
 }
 
@@ -231,7 +204,7 @@ Entity *FirstEntityCorrespondingToSelectedNode(void){
 
 void SelectNodeFromEntity(Entity *e){
     HistoryTree *h=e->finalLeaf;
-    for(int i=aux->tot-1;i>selectedNodeI;i--)h=h->parent;
+    for(int i=h->level+1;i>selectedNodeI;i--)h=h->parent;
     AuxData *data=h->data;
     selectedNodeJ=data->j;
 }

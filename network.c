@@ -20,23 +20,11 @@ int GetEntityIndex(Entity *e){
     return -1;
 }
 
-static void UpdateInteractionLabel(Interaction *interaction){
-    SetWindowContext(win1);
-    if(interaction->label){
-        FreeTexture(interaction->label);
-        interaction->label=NULL;
-    }
-    if(interaction->multiplicity>1)
-        interaction->label=CreateText(font,"%d",interaction->multiplicity);
-}
-
 static Interaction *NewInteraction(int i,int j,int multiplicity){
     Interaction *interaction=malloc(sizeof(Interaction));
     interaction->e1=GetEntity(i);
     interaction->e2=GetEntity(j);
     interaction->multiplicity=multiplicity;
-    interaction->label=NULL;
-    UpdateInteractionLabel(interaction);
     return interaction;
 }
 
@@ -45,8 +33,6 @@ static Interaction *CopyInteraction(Interaction *interaction){
     interaction2->e1=interaction->e1;
     interaction2->e2=interaction->e2;
     interaction2->multiplicity=interaction->multiplicity;
-    interaction2->label=NULL;
-    UpdateInteractionLabel(interaction2);
     return interaction2;
 }
 
@@ -88,15 +74,16 @@ void InitNetwork(int type,int n){
         case 6: ExampleNetwork6(); break;
         default: break;
     }
+    if(network->rounds->tot)currentRound=0;
     ExecuteNetwork();
     win1->invalid=true;
-    win2->invalid=true;
 }
 
 void ExecuteNetwork(void){
     for(int i=0;i<network->entities->tot;i++){
         Entity *e=GetEntity(i);
         if(e->history)FreeHistoryTree(e->history);
+        e->outdegree=outAware?0:-1;
         e->current=e->history=NewHistoryTree();
         ExtendHistory(e);
     }
@@ -105,7 +92,7 @@ void ExecuteNetwork(void){
         for(int i=0;i<v->tot;i++)
             ExecuteInteraction(v->items[i]);
         for(int i=0;i<network->entities->tot;i++)
-            EndRound(GetEntity(i),false,true);
+            EndRound(GetEntity(i));
     }
     if(finalHistory)FreeHistoryTree(finalHistory);
     finalHistory=NewHistoryTree();
@@ -143,8 +130,6 @@ void InsertRound(int index,bool copy){ // copy interactions from previous round?
 }
 
 static void FreeInteraction(Interaction *interaction){
-    SetWindowContext(win1);
-    if(interaction->label)FreeTexture(interaction->label);
     free(interaction);
 }
 
@@ -201,7 +186,6 @@ void AddInteraction(int round,int i,int j,int multiplicity){ // interaction from
             DeleteVector(v,k);
             FreeInteraction(interaction);
         }
-        else UpdateInteractionLabel(interaction);
     }
     else if(multiplicity>0)AddVector(v,NewInteraction(i,j,multiplicity));
 }
@@ -216,7 +200,7 @@ int SelectEntityXY(int x,int y){
     int s=-1;
     for(int i=0;i<network->entities->tot;i++){
         Entity *e=GetEntity(i);
-        float cx=ToScreenX(win1,e->x);
+        float cx=ToScreenX1(win1,e->x);
         float cy=ToScreenY(win1,e->y);
         float dist=(cx-x)*(cx-x)+(cy-y)*(cy-y);
         if(s==-1 || dist<minDist){ minDist=dist; s=i; }
@@ -234,64 +218,204 @@ void CountingAlgorithm(void){
             case 2: TerminatingAlgorithm(); break;
             default: break;
         }
-    UpdateAuxDataLabels();
 }
 
-bool LoadNetwork(const char *filename){
-    FILE *f;
-    char buf[1024];
-    f=fopen(filename,"rb");
-    if(!f)return false;
-    drawingEdge=draggingEntity=false;
-    selectedEntity=selectedNodeI=selectedNodeJ=-1;
-    selectedNode=NULL;
-    currentRound=-1;
-    DoneNetwork();
+static bool LoadNetworkHelper(SDL_IOStream *stream){
+    #define BUF_SIZE 1024
+    char buffer[BUF_SIZE];
+    int input,round=-1,r,e1,e2,m,n=0;
+    float x,y;
+    size_t length=0,readBytes=0;
+    char ch;
+    Network *backup=network;
     network=malloc(sizeof(Network));
     network->entities=NewVector(8);
     network->rounds=NewVector(8);
-    int input,round=-1,r,e1,e2,m,n=0;
-    float x,y;
-    while(fgets(buf,sizeof(buf),f)){
-        if(sscanf(buf,"entity (%d, %f, %f)",&input,&x,&y)==3){
-            if(x<-1.0f)x=-1.0f;
-            if(x>1.0f)x=1.0f;
-            if(y<-1.0f)y=-1.0f;
-            if(y>1.0f)y=1.0f;
-            AddEntity(input,x,y);
-            n++;
-        }
-        if(sscanf(buf,"round %d",&r)==1)InsertRound(++round,false);
-        if(sscanf(buf,"inter (%d, %d, %d)",&e1,&e2,&m)==3){
-            if(0<=e1 && e1<n && 0<=e2 && e2<n && m>0)AddInteraction(round,e1,e2,m);
+    for(;;){
+        readBytes=SDL_ReadIO(stream,&ch,1);
+        if(!readBytes)break;
+        if(length<BUF_SIZE-1)buffer[length++]=ch;
+        if(ch=='\n'||length>=BUF_SIZE-1){
+            buffer[length]='\0';
+            if(sscanf(buffer,"entity (%d, %f, %f)",&input,&x,&y)==3){
+                if(x<-1.0f)x=-1.0f;
+                if(x>1.0f)x=1.0f;
+                if(y<-1.0f)y=-1.0f;
+                if(y>1.0f)y=1.0f;
+                if(input<0)input=0;
+                AddEntity(input,x,y);
+                n++;
+            }
+            else if(sscanf(buffer,"round %d",&r)==1)InsertRound(++round,false);
+            else if(sscanf(buffer,"inter (%d, %d, %d)",&e1,&e2,&m)==3){
+                if(0<=e1 && e1<n && 0<=e2 && e2<n && m>0)AddInteraction(round,e1,e2,m);
+            }
+            length=0;
         }
     }
-    fclose(f);
+    if(n==0){
+        for(int i=0;i<network->entities->tot;i++)FreeEntity(GetEntity(i));
+        for(int j=network->rounds->tot-1;j>=0;j--)DeleteRound(j);
+        FreeVector(network->entities);
+        FreeVector(network->rounds);
+        free(network);
+        network=backup;
+        return false;
+    }
+    selectedEntity=selectedNodeI=selectedNodeJ=-1;
+    selectedNode=NULL;
+    currentRound=round==-1?-1:0;
+    Network *temp=network;
+    network=backup;
+    DoneNetwork();
+    network=temp;
     ExecuteNetwork();
     win1->invalid=true;
-    win2->invalid=true;
     return true;
 }
 
-bool SaveNetwork(const char *filename){
-    FILE *f;
-    f=fopen(filename,"wb");
-    if(!f)return false;
+static bool SaveNetworkHelper(SDL_IOStream *stream){
     for(int i=0;i<network->entities->tot;i++){
         Entity *e=GetEntity(i);
-        fprintf(f,"entity (%d, %f, %f)\n",e->input,e->x,e->y);
+        if(!SDL_IOprintf(stream,"entity (%d, %f, %f)\n",e->input,e->x,e->y))return false;
     }
     for(int i=0;i<network->rounds->tot;i++){
-        fprintf(f,"\nround %d\n",i+1);
+        if(!SDL_IOprintf(stream,"\nround %d\n",i+1))return false;
         Vector *v=network->rounds->items[i];
         for(int j=0;j<v->tot;j++){
             Interaction *interaction=v->items[j];
             int e1=GetEntityIndex(interaction->e1);
             int e2=GetEntityIndex(interaction->e2);
             if(e1==-1 || e2==-1)continue;
-            fprintf(f,"inter (%d, %d, %d)\n",e1,e2,interaction->multiplicity);
+            if(!SDL_IOprintf(stream,"inter (%d, %d, %d)\n",e1,e2,interaction->multiplicity))return false;
         }
     }
-    fclose(f);
     return true;
 }
+
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+void HandleLoadedFile(const char *data,int length){
+    SDL_IOStream *stream=NULL;
+    if(!(stream=SDL_IOFromMem((void*)data,length))){
+        free((void*)data);
+        DisplayMessage("Failed to load network");
+        return;
+    }
+    if(LoadNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network loaded");
+    else DisplayMessage("Failed to load network");
+    free((void*)data);
+}
+
+static void LoadFileHelper(void){
+    EM_ASM_({
+        const input=document.createElement('input');
+        input.type='file';
+        input.accept='.txt,*/*';
+        input.style.display='none';
+        input.onchange=(event)=>{
+            const file=event.target.files[0];
+            if(!file)return;
+            const reader=new FileReader();
+            reader.onload=function(e){
+                const arrayBuffer=e.target.result;
+                const byteArray=new Uint8Array(arrayBuffer);
+                const ptr=Module._malloc(byteArray.length);
+                Module.HEAPU8.set(byteArray,ptr);
+                Module.ccall('HandleLoadedFile',null,['number','number'],[ptr,byteArray.length]);
+            };
+            reader.readAsArrayBuffer(file);
+        };
+        document.body.appendChild(input);
+        input.click();
+        document.body.removeChild(input);
+    });
+}
+
+static void SaveFileHelper(const char *filename,const char *data,int length){
+    EM_ASM_({
+        const filename=UTF8ToString($0);
+        const dataPtr=$1;
+        const dataLen=$2;
+        const data=new Uint8Array(Module.HEAPU8.buffer,dataPtr,dataLen);
+        const blob=new Blob([data],{type:'application/octet-stream'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    },filename,data,length);
+}
+
+void LoadNetwork(void){
+    resizing=drawingEdge=draggingEntity=false;
+    LoadFileHelper();
+}
+
+void SaveNetwork(void){
+    resizing=drawingEdge=draggingEntity=false;
+    char *buffer=NULL;
+    size_t size=network->entities->tot;
+    for(int i=0;i<network->rounds->tot;i++){
+        Vector *v=network->rounds->items[i];
+        size+=v->tot+1;
+    }
+    size*=64;
+    buffer=malloc(size);
+    SDL_IOStream *stream=NULL;
+    if(!(stream=SDL_IOFromMem(buffer,size))){
+        DisplayMessage("Failed to save network");
+        free(buffer);
+        return;
+    }
+    if(!SaveNetworkHelper(stream) || !SDL_FlushIO(stream)){
+        SDL_CloseIO(stream);
+        DisplayMessage("Failed to save network");
+        free(buffer);
+        return;
+    }
+    SaveFileHelper(FILENAME,buffer,SDL_TellIO(stream));
+    if(SDL_CloseIO(stream))DisplayMessage("Saving network");
+    else DisplayMessage("Failed to save network");
+    free(buffer);
+}
+#else
+static const SDL_DialogFileFilter filters[]={
+    {"TXT files","txt"},
+    {"All files","*"}
+};
+
+static void SDLCALL LoadFileCallback(void *userdata,const char *const *filelist,int filter){
+    (void)userdata; (void)filter;
+    if(!filelist || !*filelist)return;
+    SDL_IOStream *stream=NULL;
+    if(!(stream=SDL_IOFromFile(*filelist,"rb"))){
+        DisplayMessage("Failed to load network");
+        return;
+    }
+    if(LoadNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network loaded");
+    else DisplayMessage("Failed to load network");
+}
+
+static void SDLCALL SaveFileCallback(void *userdata,const char *const *filelist,int filter){
+    (void)userdata; (void)filter;
+    if(!filelist || !*filelist)return;
+    SDL_IOStream *stream=NULL;
+    if(!(stream=SDL_IOFromFile(*filelist,"wb"))){
+        DisplayMessage("Failed to save network");
+        return;
+    }
+    if(SaveNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network saved");
+    else DisplayMessage("Failed to save network");
+}
+
+void LoadNetwork(void){
+    resizing=drawingEdge=draggingEntity=false;
+    SDL_ShowOpenFileDialog(LoadFileCallback,NULL,win1->window,filters,2,SDL_GetBasePath(),false);
+}
+
+void SaveNetwork(void){
+    resizing=drawingEdge=draggingEntity=false;
+    SDL_ShowSaveFileDialog(SaveFileCallback,NULL,win1->window,filters,2,SDL_GetBasePath());
+}
+#endif

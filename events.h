@@ -1,5 +1,5 @@
-extern const Uint8 *keyboardState;
-extern bool prompting;
+extern const bool *keyboardState;
+extern bool resizeHover,resizing,helping;
 
 void FlushEvents(void);
 void Events(void);

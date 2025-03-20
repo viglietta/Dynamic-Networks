@@ -7,6 +7,7 @@ HistoryTree *NewHistoryTree(void){ // creates new root
     h->parent=NULL;
     h->children=NewVector(4);
     h->observations=NewVector(4);
+    h->outdegree=-1;
     h->reference=NULL;
     h->data=NULL;
     return h;
@@ -52,18 +53,20 @@ HistoryTree *AddHistoryTreeChild(HistoryTree *h,int input){ // adds a child node
     h2->parent=h;
     h2->input=input;
     h2->level=h->level+1;
+    h2->outdegree=outAware?0:-1;
     AddVector(h->children,h2);
     return h2;
 }
 
-static bool EquivalentNodes(HistoryTree *h1,HistoryTree *h2){ // used when constructing homomorphisms
+static bool EquivalentNodes(HistoryTree *h1,HistoryTree *h2){ // used when constructing isomorphisms
     if(!h1 || !h2)return false;
     if(!h1->parent){ if(h2->parent)return false; }
-    else if(!h2->parent || h1->parent->reference!=h2->parent)return false; // check if parents are homomorphic
+    else if(!h2->parent || h1->parent->reference!=h2->parent)return false; // check if parents are isomorphic
     if(h1->level!=h2->level)return false;
     if(h1->input!=h2->input)return false;
+    if(h1->outdegree!=h2->outdegree)return false;
     if(h1->observations->tot!=h2->observations->tot)return false;
-    for(int i=0;i<h1->observations->tot;i++){ // check if all red edges lead to homomorphic nodes
+    for(int i=0;i<h1->observations->tot;i++){ // check if all red edges lead to isomorphic nodes
         Observation *o1=h1->observations->items[i];
         Observation *o2=FindRedEdge(h2,o1->history->reference);
         if(!o2 || o1->multiplicity!=o2->multiplicity)return false;
@@ -86,12 +89,12 @@ HistoryTree *MergeHistoryTrees(HistoryTree *h1,HistoryTree *h2,bool *added){ // 
     while(!IsQueueEmpty(q)){
         HistoryTree *a=PopQueue(q); // the children of node a of h2 have to be mapped to h1
         if(a->level>deepest->level)deepest=a; // update deepest
-        HistoryTree *b=a->reference; // node b of h1 is homeomorphic to a
+        HistoryTree *b=a->reference; // node b of h1 is isomorphic to a
         for(int i=0;i<a->children->tot;i++){ // scan children of a
             HistoryTree *x=a->children->items[i];
             HistoryTree *y=NULL;
             AppendQueue(q,x); // enqueue child x of a
-            for(int j=0;j<b->children->tot;j++){ // search for child y of b homeomorphic to x
+            for(int j=0;j<b->children->tot;j++){ // search for child y of b isomorphic to x
                 HistoryTree *z=b->children->items[j];
                 if(EquivalentNodes(x,z)){ y=z; break; }
             }
@@ -100,8 +103,9 @@ HistoryTree *MergeHistoryTrees(HistoryTree *h1,HistoryTree *h2,bool *added){ // 
                 y=AddHistoryTreeChild(b,x->input); // add new child y to b
                 for(int j=0;j<x->observations->tot;j++){ // scan red edges from x
                     Observation *o=x->observations->items[j];
-                    AddNewRedEdge(y,o->history->reference,o->multiplicity); // create homeomorphic red edge from y
+                    AddNewRedEdge(y,o->history->reference,o->multiplicity); // create isomorphic red edge from y
                 }
+                y->outdegree=x->outdegree;
             }
             x->reference=y; // map x to y
         }
@@ -114,12 +118,12 @@ HistoryTree *MergeHistoryTrees(HistoryTree *h1,HistoryTree *h2,bool *added){ // 
 
 HistoryTree *CopyHistoryTree(HistoryTree *h,HistoryTree **deepest){ // returns copied tree and deepest node
     HistoryTree *h2=NewHistoryTree();
-    HistoryTree *aux=MergeHistoryTrees(h2,h,NULL);
-    if(deepest)*deepest=aux;
+    HistoryTree *au=MergeHistoryTrees(h2,h,NULL);
+    if(deepest)*deepest=au;
     return h2;
 }
 
-bool HistoryTreeContains(HistoryTree *h1,HistoryTree *h2){ // does h1 contain a homeomorphic copy of h2?
+bool HistoryTreeContains(HistoryTree *h1,HistoryTree *h2){ // does h1 contain an isomorphic copy of h2?
     HistoryTree *t=CopyHistoryTree(h1,NULL);
     bool added;
     MergeHistoryTrees(t,h2,&added);
@@ -127,13 +131,6 @@ bool HistoryTreeContains(HistoryTree *h1,HistoryTree *h2){ // does h1 contain a 
     return !added;
 }
 
-bool HistoryTreeEquals(HistoryTree *h1,HistoryTree *h2){ // is h1 homeomorphic to h2?
+bool HistoryTreeEquals(HistoryTree *h1,HistoryTree *h2){ // is h1 isomorphic to h2?
     return HistoryTreeContains(h1,h2) && HistoryTreeContains(h2,h1);
-}
-
-void PrintHistoryTree(HistoryTree *h){
-    for(int i=-1;i<h->level;i++)printf("  ");
-    printf("L: %d, I: %d, C: %d\n",h->level,h->input,h->children->tot);
-    for(int i=0;i<h->children->tot;i++)
-        PrintHistoryTree(h->children->items[i]);
 }

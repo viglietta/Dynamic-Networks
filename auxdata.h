@@ -5,10 +5,9 @@ typedef struct{ // inherits the structure of a history tree and adds more data t
     IntVector *children; // black edges; indices of children in next level
     IntVector *observations; // red edges; indices of nodes in previous level
     IntVector *multiplicities; // multiplicities of red edges
+    int outdegree; // messages sent in previous round; -1 if not outAware
     int width; // used for drawing the history tree
     float x,y,dx,dy; // used for drawing the history tree
-    Texture *label; // label to be displayed in the node
-    Vector *linkLabels; // Vector of Texture; corresponds to multiplicities of upward red edges
     int anonymity; // computed knowing the network information; not used by counting algorithms
     bool visible; // the node is part of the selected view
     int guess; // estimated anonymity; -1 if no guess has been made
@@ -27,7 +26,6 @@ AuxData *GetAuxData(int i,int j);
 void ResetAuxDataVariables(void);
 void ComputeAuxData(HistoryTree *h);
 void FreeAuxData(void);
-void UpdateAuxDataLabels(void);
 void SelectView(void);
 void SelectNodeXY(int x,int y,int *si,int *sj);
 bool CorrespondsToSelectedNode(Entity *e);

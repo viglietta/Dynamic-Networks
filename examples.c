@@ -16,7 +16,7 @@ static void CycleInteract(int round,int a,int b,int m){
 void ExampleNetwork1(int n){ // terminating algorithm's worst case
     for(int i=0;i<n;i++){
         float alpha=i*2.0f*M_PI/n;
-        AddEntity(i?1:0,0.75f*sin(alpha),-0.75f*cos(alpha));
+        AddEntity(i?1:0,0.75f*sinf(alpha),-0.75f*cosf(alpha));
     }
     for(int r=1;r<=3*n-3;r++){
         InsertRound(r-1,false);
@@ -32,7 +32,7 @@ void ExampleNetwork1(int n){ // terminating algorithm's worst case
 void ExampleNetwork2(int n){ // lower bound of 2n-c rounds
     for(int i=0;i<n;i++){
         float alpha=i*2.0f*M_PI/n;
-        AddEntity(i?1:0,0.75f*sin(alpha),-0.75f*cos(alpha));
+        AddEntity(i?1:0,0.75f*sinf(alpha),-0.75f*cosf(alpha));
     }
     for(int r=1;r<=2*n-1;r++){
         InsertRound(r-1,false);
@@ -45,7 +45,7 @@ void ExampleNetwork2(int n){ // lower bound of 2n-c rounds
 void ExampleNetwork3(int n){ // lower bound of 1.5n-2 rounds
     for(int i=0;i<n;i++){
         float alpha=i*2.0f*M_PI/n;
-        AddEntity(i?1:0,0.75f*sin(alpha),-0.75f*cos(alpha));
+        AddEntity(i?1:0,0.75f*sinf(alpha),-0.75f*cosf(alpha));
     }
     int m=n/2;
     for(int r=1;r<=3*m-2;r++){
@@ -63,7 +63,7 @@ void ExampleNetwork4(int n){ // the stabilizing approach fails for an arbitraril
     int l=0,a=n-3,a1=1,a2=a,b1=a+1,b2=a+2;
     for(int i=0;i<n;i++){
         float alpha=((i==b2?0:i==0?b2:i)+1)*2.0f*M_PI/n;
-        AddEntity(i?i<=a?1:2:0,0.75f*sin(alpha),-0.75f*cos(alpha));
+        AddEntity(i?i<=a?1:2:0,0.75f*sinf(alpha),-0.75f*cosf(alpha));
     }
     int t=n%2==0?n/2+1:n/2+2;
     for(int r=1;r<=t;r++){
@@ -134,9 +134,16 @@ void ExampleNetwork5(void){ // boldi-vigna bipartite static anonymous network
 
 void ExampleNetwork6(void){ // regular static anonymous network
     int n=10;
-    for(int i=0;i<n;i++){
-        float alpha=i*2.0f*M_PI/n;
-        AddEntity(1,0.75f*sin(alpha),-0.75f*cos(alpha));
+    AddEntity(1,0.0f,0.0f);
+    for(int i=0;i<n-1;i++){
+        if(i%3){
+            float alpha=i*2.0f*M_PI/(n-1);
+            AddEntity(1,0.75f*sinf(alpha),-0.75f*cosf(alpha));
+        }
+        else{
+            float alpha=(i+1.5f)*2.0f*M_PI/(n-1);
+            AddEntity(1,0.35f*sinf(alpha),-0.35f*cosf(alpha));
+        }
     }
     for(int r=1;r<=10;r++){
         InsertRound(r-1,false);
