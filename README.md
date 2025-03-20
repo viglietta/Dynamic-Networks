@@ -1,2 +1,5 @@
 Create and edit anonymous dynimic networks and visualize their history trees.
-See https://giovanniviglietta.com/papers/historytree.pdf for more information.
+
+[Web version](https://giovanniviglietta.com/projects/anonymity/index.html)
+
+[Research paper](https://giovanniviglietta.com/papers/historytree.pdf)
