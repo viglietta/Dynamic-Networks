@@ -135,7 +135,7 @@ WindowData *NewWindow(const char *title,void(*renderFunction)(struct WindowData*
     emscripten_get_canvas_element_size("#canvas",&win->w,&win->h);
     #else
     int winSize=100;
-    win->w=winSize; win->h=winSize;
+    win->w=winSize*16; win->h=winSize*9;
     #endif
     if(!(win->window=SDL_CreateWindow(title,win->w,win->h,winFlags)))Exit("Unable to create window.");
     if(!(win->context=SDL_GL_CreateContext(win->window)))Exit("Unable to create OpenGL context.");
@@ -144,11 +144,9 @@ WindowData *NewWindow(const char *title,void(*renderFunction)(struct WindowData*
     SDL_GetWindowSize(win->window,&win->w,&win->h);
     SetWindowViewport(win);
     InitShader();
-
     glClearColor(1.0f,1.0f,1.0f,1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     SDL_GL_SwapWindow(win->window);
-
     win->invalid=true;
     return win;
 }

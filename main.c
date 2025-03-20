@@ -63,16 +63,14 @@ static bool WindowEventWatcher(void *data,SDL_Event *event){
     (void)data;
     if(event->type==SDL_EVENT_WINDOW_RESIZED||event->type==SDL_EVENT_WINDOW_MOVED){
         SDL_Window *window=SDL_GetWindowFromID(event->window.windowID);
-        WindowData *win=NULL;
-        if(window==win1->window)win=win1;
-        if(win){
+        if(window==win1->window){
             if(event->type==SDL_EVENT_WINDOW_RESIZED){
-                win->w=event->window.data1;
-                win->h=event->window.data2;
-                SetWindowViewport(win);
+                win1->w=event->window.data1;
+                win1->h=event->window.data2;
+                SetWindowViewport(win1);
             }
-            win->invalid=true;
-            RenderWindow(win);
+            win1->invalid=true;
+            RenderWindow(win1);
         }
     }
     return false;
