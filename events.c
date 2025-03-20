@@ -139,7 +139,7 @@ static void KeyPressed(SDL_Keycode key){
                 numSteps=-1;
                 CountingAlgorithm();
                 win1->invalid=true;
-                DisplayMessage("Create new round");
+                DisplayMessage("Insert new round");
             }
             break;
         case SDLK_MINUS:
@@ -161,7 +161,7 @@ static void KeyPressed(SDL_Keycode key){
             break;
         case SDLK_LCTRL:
         case SDLK_RCTRL:
-            if(drawingEdge)DisplayMessage("Remove link");
+            if(drawingEdge)DisplayMessage("Delete link");
             break;
         case SDLK_LALT:
         case SDLK_RALT:
@@ -170,13 +170,13 @@ static void KeyPressed(SDL_Keycode key){
         case SDLK_LSHIFT:
         case SDLK_RSHIFT:
             if(drawingEdge){
-                if(SDL_GetModState()&SDL_KMOD_CAPS)DisplayMessage("Single link");
-                else DisplayMessage("Double link");
+                if(SDL_GetModState()&SDL_KMOD_CAPS)DisplayMessage("One-way link");
+                else DisplayMessage("Two-way link");
             }
             break;
         case SDLK_CAPSLOCK:
-            if(SDL_GetModState()&SDL_KMOD_CAPS)DisplayMessage("Create double links by default");
-            else DisplayMessage("Create single links by default");
+            if(SDL_GetModState()&SDL_KMOD_CAPS)DisplayMessage("Create two-way links by default");
+            else DisplayMessage("Create one-way links by default");
             break;
         case SDLK_0:
         case SDLK_1:
@@ -190,7 +190,7 @@ static void KeyPressed(SDL_Keycode key){
         case SDLK_9:
             if(selectedEntity!=-1){
                 if(currentRound<-1){
-                    DisplayMessage("Cannot assign input on round -1");
+                    DisplayMessage("Cannot assign input before round 0");
                     break;
                 }
                 int input=key-SDLK_0;
@@ -207,7 +207,7 @@ static void KeyPressed(SDL_Keycode key){
             }
             if(selectedNodeI!=-1 && selectedNodeJ!=-1){
                 if(currentRound<-1){
-                    DisplayMessage("Cannot assign input on round -1");
+                    DisplayMessage("Cannot assign input before round 0");
                     break;
                 }
                 int input=key-SDLK_0;
@@ -328,7 +328,7 @@ static void KeyReleased(SDL_Keycode key){
     switch(key){
         case SDLK_LCTRL:
         case SDLK_RCTRL:
-            if(drawingEdge)DisplayMessage("Add link");
+            if(drawingEdge)DisplayMessage("Create link");
             break;
         case SDLK_LALT:
         case SDLK_RALT:
@@ -359,7 +359,6 @@ static void MousePressed1(SDL_MouseButtonEvent *button){ // specific to left pan
             numSteps=-1;
             CountingAlgorithm();
             win1->invalid=true;
-            DisplayMessage("Create new link");
         }
     }
     if(button->button==SDL_BUTTON_RIGHT && !drawingEdge){
@@ -431,15 +430,15 @@ static void MouseReleased(SDL_MouseButtonEvent *button){
     if(button->button==SDL_BUTTON_LEFT){
         if(drawingEdge){
             drawingEdge=false;
-            if(currentRound<0)DisplayMessage("Cannot create interactions on rounds -1 and 0");
-            else{
-                int mult=(keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])?-1:1;
-                bool allRounds=keyboardState[SDL_SCANCODE_LALT] || keyboardState[SDL_SCANCODE_RALT];
-                bool bothWays=keyboardState[SDL_SCANCODE_LSHIFT] || keyboardState[SDL_SCANCODE_RSHIFT];
-                if(SDL_GetModState()&SDL_KMOD_CAPS)bothWays=!bothWays;
-                win1->invalid=true;
-                int s=SelectEntityXY(button->x*win1->sx,button->y*win1->sy);
-                if(selectedEntity!=-1 && s!=-1){
+            int mult=(keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])?-1:1;
+            bool allRounds=keyboardState[SDL_SCANCODE_LALT] || keyboardState[SDL_SCANCODE_RALT];
+            bool bothWays=keyboardState[SDL_SCANCODE_LSHIFT] || keyboardState[SDL_SCANCODE_RSHIFT];
+            if(SDL_GetModState()&SDL_KMOD_CAPS)bothWays=!bothWays;
+            win1->invalid=true;
+            int s=SelectEntityXY(button->x*win1->sx,button->y*win1->sy);
+            if(selectedEntity!=-1 && s!=-1){
+                if(currentRound<0)DisplayMessage("Cannot modify links before round 1");
+                else{
                     if(allRounds)
                         for(int r=0;r<network->rounds->tot;r++){
                             AddInteraction(r,selectedEntity,s,mult);
@@ -453,6 +452,8 @@ static void MouseReleased(SDL_MouseButtonEvent *button){
                     numSteps=-1;
                     CountingAlgorithm();
                     win1->invalid=true;
+                    if(mult>0)DisplayMessage("Create new link");
+                    else DisplayMessage("Delete link");
                 }
             }
         }
@@ -481,7 +482,10 @@ static void MouseMoved(SDL_MouseMotionEvent *motion){
         float sx=ToScreenX1(win1,e->x);
         float sy=ToScreenY(win1,e->y);
         float dist=(sx-mx)*(sx-mx)+(sy-my)*(sy-my);
-        if(dist>NODE_SIZE*NODE_SIZE*0.25f)drawingEdge=true;
+        if(dist>NODE_SIZE*NODE_SIZE*0.25f){
+            drawingEdge=true;
+            //else
+        }
     }
     if(drawingEdge)win1->invalid=true;
     if(draggingEntity){
