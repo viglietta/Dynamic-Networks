@@ -38,7 +38,7 @@ float ReadFloat(SDL_IOStream *stream){
     return u.f;
 }
 
-void DisplayMessage(char *format,...){
+void DisplayMessage(const char *format,...){
     va_list args;
     va_start(args,format);
     vsprintf(infoMessage,format,args);

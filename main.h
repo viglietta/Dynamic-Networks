@@ -76,7 +76,7 @@ Uint8 ReadU8(SDL_IOStream *stream);
 Uint16 ReadU16LE(SDL_IOStream *stream);
 Uint32 ReadU32LE(SDL_IOStream *stream);
 float ReadFloat(SDL_IOStream *stream);
-void DisplayMessage(char *format,...);
+void DisplayMessage(const char *format,...);
 void UndisplayMessage(void);
 
 #endif
