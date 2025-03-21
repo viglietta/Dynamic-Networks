@@ -482,10 +482,7 @@ static void MouseMoved(SDL_MouseMotionEvent *motion){
         float sx=ToScreenX1(win1,e->x);
         float sy=ToScreenY(win1,e->y);
         float dist=(sx-mx)*(sx-mx)+(sy-my)*(sy-my);
-        if(dist>NODE_SIZE*NODE_SIZE*0.25f){
-            drawingEdge=true;
-            //else
-        }
+        if(dist>NODE_SIZE*NODE_SIZE*0.25f)drawingEdge=true;
     }
     if(drawingEdge)win1->invalid=true;
     if(draggingEntity){
