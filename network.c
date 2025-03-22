@@ -220,6 +220,20 @@ void CountingAlgorithm(void){
         }
 }
 
+static char *EnsureSuffix(const char *string,const char *suffix){
+    if(!string)return NULL;
+    if(!suffix)return SDL_strdup(string);
+    size_t stringLen=SDL_strlen(string);
+    size_t suffixLen=SDL_strlen(suffix);
+    if(stringLen>=suffixLen && !SDL_strcasecmp(string+stringLen-suffixLen,suffix))return SDL_strdup(string);
+    size_t newStringLen=stringLen+suffixLen+1;
+    char *newString=malloc(newStringLen);
+    if(!newString)return NULL;
+    SDL_strlcpy(newString,string,newStringLen);
+    SDL_strlcat(newString,suffix,newStringLen);
+    return newString;
+}
+
 static bool LoadNetworkHelper(SDL_IOStream *stream){
     #define BUF_SIZE 1024
     char buffer[BUF_SIZE];
@@ -333,6 +347,7 @@ static void LoadFileHelper(void){
 }
 
 static void SaveFileHelper(const char *filename,const char *data,int length){
+    char *newFilename=EnsureSuffix(filename,".txt");
     EM_ASM_({
         const filename=UTF8ToString($0);
         const dataPtr=$1;
@@ -344,7 +359,8 @@ static void SaveFileHelper(const char *filename,const char *data,int length){
         a.download=filename;
         a.click();
         URL.revokeObjectURL(a.href);
-    },filename,data,length);
+    },newFilename,data,length);
+    SDL_free(newFilename);
 }
 
 void LoadNetwork(void){
@@ -388,34 +404,54 @@ static const SDL_DialogFileFilter filters[]={
 static void SDLCALL LoadFileCallback(void *userdata,const char *const *filelist,int filter){
     (void)userdata; (void)filter;
     if(!filelist || !*filelist)return;
-    SDL_IOStream *stream=NULL;
-    if(!(stream=SDL_IOFromFile(*filelist,"rb"))){
-        DisplayMessage("Failed to load network");
-        return;
-    }
-    if(LoadNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network loaded");
-    else DisplayMessage("Failed to load network");
+    SDL_Event event;
+    SDL_zero(event);
+    event.type=SDL_EVENT_LOAD_NETWORK;
+    event.user.data1=SDL_strdup(*filelist);
+    SDL_PushEvent(&event);
 }
 
 static void SDLCALL SaveFileCallback(void *userdata,const char *const *filelist,int filter){
     (void)userdata; (void)filter;
     if(!filelist || !*filelist)return;
-    SDL_IOStream *stream=NULL;
-    if(!(stream=SDL_IOFromFile(*filelist,"wb"))){
-        DisplayMessage("Failed to save network");
-        return;
-    }
-    if(SaveNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network saved");
-    else DisplayMessage("Failed to save network");
+    SDL_Event event;
+    SDL_zero(event);
+    event.type=SDL_EVENT_SAVE_NETWORK;
+    event.user.data1=EnsureSuffix(*filelist,".txt");
+    SDL_PushEvent(&event);
 }
 
 void LoadNetwork(void){
-    resizing=drawingEdge=draggingEntity=false;
     SDL_ShowOpenFileDialog(LoadFileCallback,NULL,win1->window,filters,2,SDL_GetBasePath(),false);
 }
 
 void SaveNetwork(void){
-    resizing=drawingEdge=draggingEntity=false;
     SDL_ShowSaveFileDialog(SaveFileCallback,NULL,win1->window,filters,2,SDL_GetBasePath());
+}
+
+void LoadNetworkRun(const char *filename){
+    resizing=drawingEdge=draggingEntity=false;
+    SDL_IOStream *stream=NULL;
+    if(!(stream=SDL_IOFromFile(filename,"rb"))){
+        DisplayMessage("Failed to load network");
+        SDL_free((char*)filename);
+        return;
+    }
+    if(LoadNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network loaded");
+    else DisplayMessage("Failed to load network");
+    SDL_free((char*)filename);
+}
+
+void SaveNetworkRun(const char *filename){
+    resizing=drawingEdge=draggingEntity=false;
+    SDL_IOStream *stream=NULL;
+    if(!(stream=SDL_IOFromFile(filename,"wb"))){
+        DisplayMessage("Failed to save network");
+        SDL_free((char*)filename);
+        return;
+    }
+    if(SaveNetworkHelper(stream) && SDL_CloseIO(stream))DisplayMessage("Network saved");
+    else DisplayMessage("Failed to save network");
+    SDL_free((char*)filename);
 }
 #endif

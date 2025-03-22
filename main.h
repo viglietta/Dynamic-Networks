@@ -51,6 +51,11 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifndef __EMSCRIPTEN__
+#define SDL_EVENT_LOAD_NETWORK (SDL_EVENT_USER+1)
+#define SDL_EVENT_SAVE_NETWORK (SDL_EVENT_USER+2)
+#endif
+
 #include "queue.h"
 #include "vector.h"
 #include "shader.h"

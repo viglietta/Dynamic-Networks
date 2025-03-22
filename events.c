@@ -569,6 +569,14 @@ void Events(void){
                 if(e.wheel.y<0)IncrementCurrentRound();
                 else if(e.wheel.y>0)DecrementCurrentRound();
                 break;
+            #ifndef __EMSCRIPTEN__
+            case SDL_EVENT_LOAD_NETWORK:
+                LoadNetworkRun(e.user.data1);
+                break;
+            case SDL_EVENT_SAVE_NETWORK:
+                SaveNetworkRun(e.user.data1);
+                break;
+            #endif
             default:
                 break;
         }

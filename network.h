@@ -35,3 +35,7 @@ int SelectEntityXY(int x,int y);
 void CountingAlgorithm(void);
 void LoadNetwork(void);
 void SaveNetwork(void);
+#ifndef __EMSCRIPTEN__
+void LoadNetworkRun(const char *filename);
+void SaveNetworkRun(const char *filename);
+#endif
