@@ -122,6 +122,8 @@ int main(int argc,char **argv){
     FlushEvents();
     DisplayMessage("Press H for help");
     #ifdef __EMSCRIPTEN__
+    emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW,NULL,EM_TRUE,KeyPressedCallback);
+    emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW,NULL,EM_TRUE,KeyReleasedCallback);
     emscripten_set_main_loop(MainLoop,0,1);
     #else
     while(!quit)MainLoop();

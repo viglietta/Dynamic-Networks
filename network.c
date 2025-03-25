@@ -365,6 +365,7 @@ static void SaveFileHelper(const char *filename,const char *data,int length){
 
 void LoadNetwork(void){
     resizing=drawingEdge=draggingEntity=false;
+    DisplayMessage("Loading network");
     LoadFileHelper();
 }
 

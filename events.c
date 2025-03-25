@@ -2,6 +2,7 @@
 
 const bool *keyboardState;
 bool resizeHover=false,resizing=false,helping=false;
+static float wheel=0.0f;
 
 static bool CloseToSeparator(float x){
     return x>=SeparatorX()-5.0f && x<=SeparatorX()+5.0f;
@@ -345,6 +346,75 @@ static void KeyReleased(SDL_Keycode key){
     }
 }
 
+
+#ifdef __EMSCRIPTEN__
+EM_BOOL KeyPressedCallback(int eventType,const EmscriptenKeyboardEvent *e,void *userData){
+    (void)eventType; (void)userData;
+    if(helping){
+        helping=false;
+        win1->invalid=true;
+        return EM_TRUE;
+    }
+    if(e->keyCode>=65 && e->keyCode<=90)KeyPressed(SDLK_A+e->keyCode-65); // letter
+    else if(e->keyCode>=48 && e->keyCode<=57)KeyPressed(SDLK_0+e->keyCode-48); // number
+    else{
+        switch(e->keyCode){
+        case 27: KeyPressed(SDLK_ESCAPE); break;
+        case 8: KeyPressed(SDLK_BACKSPACE); break;
+        case 46: KeyPressed(SDLK_DELETE); break;
+        case 13: KeyPressed(SDLK_RETURN); break;
+        case 189: KeyPressed(SDLK_MINUS); break;
+        case 109: KeyPressed(SDLK_KP_MINUS); break;
+        case 187: KeyPressed(SDLK_EQUALS); break;
+        case 107: KeyPressed(SDLK_KP_PLUS); break;
+        case 40: KeyPressed(SDLK_DOWN); break;
+        case 38: KeyPressed(SDLK_UP); break;
+        case 37: KeyPressed(SDLK_LEFT); break;
+        case 39: KeyPressed(SDLK_RIGHT); break;
+        case 9: KeyPressed(SDLK_TAB); break;
+        case 20: KeyPressed(SDLK_CAPSLOCK); break;
+        case 32: KeyPressed(SDLK_SPACE); break;
+        case 16: KeyPressed(SDLK_LSHIFT); break;
+        case 17: KeyPressed(SDLK_LCTRL); break;
+        case 18: KeyPressed(SDLK_LALT); break;
+        default: break;
+        }
+    }
+    return EM_TRUE;
+}
+
+EM_BOOL KeyReleasedCallback(int eventType,const EmscriptenKeyboardEvent *e,void *userData){
+    (void)eventType; (void)userData;
+    if(helping)return EM_TRUE;
+    if(e->keyCode>=65 && e->keyCode<=90)KeyReleased(SDLK_A+e->keyCode-65); // letter
+    else if(e->keyCode>=48 && e->keyCode<=57)KeyReleased(SDLK_0+e->keyCode-48); // number
+    else{
+        switch(e->keyCode){
+        case 27: KeyReleased(SDLK_ESCAPE); break;
+        case 8: KeyReleased(SDLK_BACKSPACE); break;
+        case 46: KeyReleased(SDLK_DELETE); break;
+        case 13: KeyReleased(SDLK_RETURN); break;
+        case 189: KeyReleased(SDLK_MINUS); break;
+        case 109: KeyReleased(SDLK_KP_MINUS); break;
+        case 187: KeyReleased(SDLK_EQUALS); break;
+        case 107: KeyReleased(SDLK_KP_PLUS); break;
+        case 40: KeyReleased(SDLK_DOWN); break;
+        case 38: KeyReleased(SDLK_UP); break;
+        case 37: KeyReleased(SDLK_LEFT); break;
+        case 39: KeyReleased(SDLK_RIGHT); break;
+        case 9: KeyPressed(SDLK_TAB); break;
+        case 20: KeyPressed(SDLK_CAPSLOCK); break;
+        case 32: KeyPressed(SDLK_SPACE); break;
+        case 16: KeyReleased(SDLK_LSHIFT); break;
+        case 17: KeyReleased(SDLK_LCTRL); break;
+        case 18: KeyReleased(SDLK_LALT); break;
+        default: break;
+        }
+    }
+    return EM_TRUE;
+}
+#endif
+
 static void MousePressed1(SDL_MouseButtonEvent *button){ // specific to left panel
     if(selectedNodeI!=-1 || selectedNodeJ!=-1){
         selectedNodeI=selectedNodeJ=-1;
@@ -527,7 +597,7 @@ void Events(void){
                 win1->invalid=true;
                 RenderWindow(win1);
                 break;
-            #endif
+            #else
             case SDL_EVENT_KEY_DOWN:
                 if(helping){
                     helping=false;
@@ -540,6 +610,7 @@ void Events(void){
                 if(helping)break;
                 KeyReleased(e.key.key);
                 break;
+            #endif
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
                 if(helping){
                     helping=false;
@@ -566,8 +637,12 @@ void Events(void){
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
                 if(helping)break;
-                if(e.wheel.y<0)IncrementCurrentRound();
-                else if(e.wheel.y>0)DecrementCurrentRound();
+                if(e.wheel.direction==SDL_MOUSEWHEEL_FLIPPED)wheel-=e.wheel.y;
+                else wheel+=e.wheel.y;
+                int w=(int)truncf(wheel);
+                if(w)wheel-=(float)w;
+                while(w<0){IncrementCurrentRound(); w++;}
+                while(w>0){DecrementCurrentRound(); w--;}
                 break;
             #ifndef __EMSCRIPTEN__
             case SDL_EVENT_LOAD_NETWORK:
