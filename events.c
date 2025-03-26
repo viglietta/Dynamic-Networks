@@ -2,7 +2,6 @@
 
 const bool *keyboardState;
 bool resizeHover=false,resizing=false,helping=false;
-static float wheel=0.0f;
 
 static bool CloseToSeparator(float x){
     return x>=SeparatorX()-5.0f && x<=SeparatorX()+5.0f;
@@ -581,6 +580,18 @@ static void MouseMoved(SDL_MouseMotionEvent *motion){
     }
 }
 
+static void MouseWheel(SDL_MouseWheelEvent *wheel){
+    static float wheelTot=0.0f;
+    if(wheel->direction==SDL_MOUSEWHEEL_FLIPPED)wheelTot-=wheel->y;
+    else wheelTot+=wheel->y;
+    int w=(int)truncf(wheelTot);
+    if(w){
+        wheelTot-=(float)w;
+        while(w<0){IncrementCurrentRound(); w++;}
+        while(w>0){DecrementCurrentRound(); w--;}
+    }
+}
+
 void Events(void){
     SDL_Event e;
     SDL_Window *win;
@@ -637,12 +648,9 @@ void Events(void){
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
                 if(helping)break;
-                if(e.wheel.direction==SDL_MOUSEWHEEL_FLIPPED)wheel-=e.wheel.y;
-                else wheel+=e.wheel.y;
-                int w=(int)truncf(wheel);
-                if(w)wheel-=(float)w;
-                while(w<0){IncrementCurrentRound(); w++;}
-                while(w>0){DecrementCurrentRound(); w--;}
+                win=SDL_GetWindowFromID(e.window.windowID);
+                if(win!=win1->window)break;
+                MouseWheel(&e.wheel);
                 break;
             #ifndef __EMSCRIPTEN__
             case SDL_EVENT_LOAD_NETWORK:

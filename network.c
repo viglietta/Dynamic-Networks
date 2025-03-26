@@ -227,7 +227,7 @@ static char *EnsureSuffix(const char *string,const char *suffix){
     size_t suffixLen=SDL_strlen(suffix);
     if(stringLen>=suffixLen && !SDL_strcasecmp(string+stringLen-suffixLen,suffix))return SDL_strdup(string);
     size_t newStringLen=stringLen+suffixLen+1;
-    char *newString=malloc(newStringLen);
+    char *newString=SDL_malloc(newStringLen);
     if(!newString)return NULL;
     SDL_strlcpy(newString,string,newStringLen);
     SDL_strlcat(newString,suffix,newStringLen);
