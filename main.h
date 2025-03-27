@@ -58,6 +58,7 @@
 
 #include "queue.h"
 #include "vector.h"
+#include "buffer.h"
 #include "shader.h"
 #include "font.h"
 #include "text.h"

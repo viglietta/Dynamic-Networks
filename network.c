@@ -220,20 +220,6 @@ void CountingAlgorithm(void){
         }
 }
 
-static char *EnsureSuffix(const char *string,const char *suffix){
-    if(!string)return NULL;
-    if(!suffix)return SDL_strdup(string);
-    size_t stringLen=SDL_strlen(string);
-    size_t suffixLen=SDL_strlen(suffix);
-    if(stringLen>=suffixLen && !SDL_strcasecmp(string+stringLen-suffixLen,suffix))return SDL_strdup(string);
-    size_t newStringLen=stringLen+suffixLen+1;
-    char *newString=SDL_malloc(newStringLen);
-    if(!newString)return NULL;
-    SDL_strlcpy(newString,string,newStringLen);
-    SDL_strlcat(newString,suffix,newStringLen);
-    return newString;
-}
-
 static bool LoadNetworkHelper(SDL_IOStream *stream){
     #define BUF_SIZE 1024
     char buffer[BUF_SIZE];
@@ -321,47 +307,39 @@ void HandleLoadedFile(const char *data,int length){
     free((void*)data);
 }
 
-static void LoadFileHelper(void){
-    EM_ASM_({
-        const input=document.createElement('input');
-        input.type='file';
-        input.accept='.txt,*/*';
-        input.style.display='none';
-        input.onchange=(event)=>{
-            const file=event.target.files[0];
-            if(!file)return;
-            const reader=new FileReader();
-            reader.onload=function(e){
-                const arrayBuffer=e.target.result;
-                const byteArray=new Uint8Array(arrayBuffer);
-                const ptr=Module._malloc(byteArray.length);
-                Module.HEAPU8.set(byteArray,ptr);
-                Module.ccall('HandleLoadedFile',null,['number','number'],[ptr,byteArray.length]);
-            };
-            reader.readAsArrayBuffer(file);
+EM_JS(void,LoadFileHelper,(void),{
+    const input=document.createElement('input');
+    input.type='file';
+    input.accept='.txt,*/*';
+    input.style.display='none';
+    input.onchange=(event)=>{
+        const file=event.target.files[0];
+        if(!file)return;
+        const reader=new FileReader();
+        reader.onload=function(e){
+            const arrayBuffer=e.target.result;
+            const byteArray=new Uint8Array(arrayBuffer);
+            const ptr=Module._malloc(byteArray.length);
+            Module.HEAPU8.set(byteArray,ptr);
+            Module.ccall('HandleLoadedFile',null,['number','number'],[ptr,byteArray.length]);
         };
-        document.body.appendChild(input);
-        input.click();
-        document.body.removeChild(input);
-    });
-}
+        reader.readAsArrayBuffer(file);
+    };
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+});
 
-static void SaveFileHelper(const char *filename,const char *data,int length){
-    char *newFilename=EnsureSuffix(filename,".txt");
-    EM_ASM_({
-        const filename=UTF8ToString($0);
-        const dataPtr=$1;
-        const dataLen=$2;
-        const data=new Uint8Array(Module.HEAPU8.buffer,dataPtr,dataLen);
-        const blob=new Blob([data],{type:'application/octet-stream'});
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download=filename;
-        a.click();
-        URL.revokeObjectURL(a.href);
-    },newFilename,data,length);
-    SDL_free(newFilename);
-}
+EM_JS(void,SaveFileHelper,(const char *filename,const Uint8 *data,int length),{
+    const name=UTF8ToString(filename);
+    const view=new Uint8Array(Module.HEAPU8.buffer,data,length);
+    const blob=new Blob([view],{type:'application/octet-stream'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+});
 
 void LoadNetwork(void){
     resizing=drawingEdge=draggingEntity=false;
@@ -371,30 +349,20 @@ void LoadNetwork(void){
 
 void SaveNetwork(void){
     resizing=drawingEdge=draggingEntity=false;
-    char *buffer=NULL;
-    size_t size=network->entities->tot;
-    for(int i=0;i<network->rounds->tot;i++){
-        Vector *v=network->rounds->items[i];
-        size+=v->tot+1;
-    }
-    size*=64;
-    buffer=malloc(size);
-    SDL_IOStream *stream=NULL;
-    if(!(stream=SDL_IOFromMem(buffer,size))){
+    Uint8 **data;
+    SDL_IOStream *stream=NewDynamicBufferStream(&data);
+    if(!stream){
         DisplayMessage("Failed to save network");
-        free(buffer);
         return;
     }
-    if(!SaveNetworkHelper(stream) || !SDL_FlushIO(stream)){
+    if(!SaveNetworkHelper(stream)){
         SDL_CloseIO(stream);
         DisplayMessage("Failed to save network");
-        free(buffer);
         return;
     }
-    SaveFileHelper(FILENAME,buffer,SDL_TellIO(stream));
+    SaveFileHelper(FILENAME,*data,SDL_TellIO(stream));
     if(SDL_CloseIO(stream))DisplayMessage("Saving network");
     else DisplayMessage("Failed to save network");
-    free(buffer);
 }
 #else
 static const SDL_DialogFileFilter filters[]={
@@ -410,6 +378,20 @@ static void SDLCALL LoadFileCallback(void *userdata,const char *const *filelist,
     event.type=SDL_EVENT_LOAD_NETWORK;
     event.user.data1=SDL_strdup(*filelist);
     SDL_PushEvent(&event);
+}
+
+static char *EnsureSuffix(const char *string,const char *suffix){
+    if(!string)return NULL;
+    if(!suffix)return SDL_strdup(string);
+    size_t stringLen=SDL_strlen(string);
+    size_t suffixLen=SDL_strlen(suffix);
+    if(stringLen>=suffixLen && !SDL_strcasecmp(string+stringLen-suffixLen,suffix))return SDL_strdup(string);
+    size_t newStringLen=stringLen+suffixLen+1;
+    char *newString=SDL_malloc(newStringLen);
+    if(!newString)return NULL;
+    SDL_strlcpy(newString,string,newStringLen);
+    SDL_strlcat(newString,suffix,newStringLen);
+    return newString;
 }
 
 static void SDLCALL SaveFileCallback(void *userdata,const char *const *filelist,int filter){
